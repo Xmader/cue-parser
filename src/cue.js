@@ -1,59 +1,39 @@
 /**
  * Main library
  */
- var fs = require('fs')
- , parseCommand = require('./command')
- , CueSheet = require('./cuesheet').CueSheet
- , File = require('./cuesheet').File
- , Index = require('./cuesheet').Index
- , Time = require('./cuesheet').Time;
+const parseCommand = require('./command')
+const { CueSheet, Index, Time } = require('./cuesheet')
 
-
- var commandMap = {
-    'CATALOG':    parseCatalog,
+const commandMap = {
+    'CATALOG': parseCatalog,
     'CDTEXTFILE': parseCdTextFile,
-    'FILE':       parseFile,
-    'FLAGS':      parseFlags,
-    'INDEX':      parseIndex,
-    'ISRC':       parseIsrc,
-    'PERFORMER':  parsePerformer,
-    'POSTGAP':    parsePostgap,
-    'PREGAP':     parsePregap,
-    'REM':        parseRem,
+    'FILE': parseFile,
+    'FLAGS': parseFlags,
+    'INDEX': parseIndex,
+    'ISRC': parseIsrc,
+    'PERFORMER': parsePerformer,
+    'POSTGAP': parsePostgap,
+    'PREGAP': parsePregap,
+    'REM': parseRem,
     'SONGWRITER': parseSongWriter,
-    'TITLE':      parseTitle,
-    'TRACK':      parseTrack
+    'TITLE': parseTitle,
+    'TRACK': parseTrack
 }
 
-exports = module.exports;
-
 /**
- * parse function
+ * @param {string} cueFileStr cue file content
  */
+const parse = function (cueFileStr) {
+    const cuesheet = new CueSheet()
 
- exports.parse = function(filename) {
-    var lineParser
-    , cuesheet = new CueSheet()
-    , lines;
+    const lines = cueFileStr.split(/\r?\n/)
 
-    if (!filename) {
-        console.log('no file name specified for parse');
-        return;
-    }
-
-    if (!fs.existsSync(filename)) {
-        throw new Error('file ' + filename + ' does not exist');
-    }
-
-    lines = fs.readFileSync(filename, { encoding: 'utf8', flag: 'r' })
-         .replace(/\r\n/, '\n').split('\n');
-
-    lines.forEach(function(line) {
-        if (! line.match(/^\s*$/)) {
-            lineParser = parseCommand(line);
-            commandMap[lineParser.command](lineParser.params, cuesheet);
-        };
-    });
+    lines.filter((line) => {
+        return line.trim()
+    }).forEach((line) => {
+        const lineParser = parseCommand(line);
+        commandMap[lineParser.command](lineParser.params, cuesheet)
+    })
 
     return cuesheet;
 }
@@ -87,8 +67,8 @@ function parseFlags(params, cuesheet) {
 
 function parseIndex(params, cuesheet) {
     var number = parseInt(params[0], 10)
-    , time = parseTime(params[1])
-    , track = cuesheet.getCurrentTrack();
+        , time = parseTime(params[1])
+        , track = cuesheet.getCurrentTrack();
 
     if (!track) {
         throw new Error('No track found for index ' + params);
@@ -99,7 +79,7 @@ function parseIndex(params, cuesheet) {
     }
 
     if (number < 0 || number > 99) {
-        throw new Error('Index nubmer must between 0 and 99: ', number);
+        throw new Error('Index nubmer must between 0 and 99: ' + number);
     }
 
     if (!track.indexes) {
@@ -203,8 +183,8 @@ function parseTrack(params, cuesheet) {
 
 function parseTime(timeSting) {
     var timePattern = /^(\d{2,}):(\d{2}):(\d{2})$/,
-    parts = timeSting.match(timePattern),
-    time = new Time();
+        parts = timeSting.match(timePattern),
+        time = new Time();
 
     if (!parts) {
         throw new Error('Invalid time format:' + timeSting);
@@ -223,4 +203,8 @@ function parseTime(timeSting) {
     }
 
     return time;
+}
+
+module.exports = {
+    parse,
 }
